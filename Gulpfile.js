@@ -144,12 +144,12 @@ gulp.task('plugin_scripts', function () {
         gulp.src(source.pluginjs)
             .pipe(watch())
             .pipe(plumber())
-            .pipe(concat("plugin.js"))
+            .pipe(concat("plugins.js"))
             .pipe(gulp.dest(target.pluginjs))
             .pipe(livereload(server));
     } else {
         gulp.src(source.pluginjs)
-            .pipe(concat("plugin.js"))
+            .pipe(concat("plugins.js"))
             .pipe(uglify({mangle: true}).on('error', gutil.log))
             .pipe(gulp.dest(target.pluginjs));
     }
