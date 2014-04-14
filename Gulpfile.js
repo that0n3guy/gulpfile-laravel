@@ -69,7 +69,7 @@ var source = {
     ],
 
     //bootstrap
-    bootstrapjs: [assetsource + '/bootstrap/javascripts/bootstrap.js'],
+    bootstrapjs: [assetsource + '/bootstrap/javascripts/bootstrap/tooltip.js', assetsource + '/bootstrap/javascripts/**/*.js'], // load tooltip before anything else since popover requires it
     bootstrapscss: [assetsource + '/bootstrap/stylesheets/bootstrap.scss'],
     bootstrapfonts: [assetsource + '/bootstrap/fonts/**/*.{ttf,woff,eof,svg}'],
 
