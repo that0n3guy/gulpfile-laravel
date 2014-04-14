@@ -1,7 +1,7 @@
 /////////////////////////////////
 // TO use:
 //      install gulp globally: sudo npm install -g gulp
-//      install locally: npm install --save-dev gulp gulp-clean gulp-flatten gulp-continuous-concat gulp-plumber gulp-watch gulp-scss gulp-util gulp-less gulp-autoprefixer gulp-minify-css gulp-concat gulp-uglify gulp-livereload gulp-notify tiny-lr
+//      install locally: npm install --save-dev gulp gulp-clean gulp-ignore gulp-flatten gulp-continuous-concat gulp-plumber gulp-watch gulp-sass gulp-util gulp-less gulp-autoprefixer gulp-minify-css gulp-concat gulp-uglify gulp-livereload gulp-notify tiny-lr
 
 //      type "gulp" for production (minified) stuff
 //      type "gulp dev" for dev stuff with watching enabled and livereload (https://github.com/vohof/gulp-livereload)
@@ -26,47 +26,75 @@
 // Main source and target directories
 //   These are currently set for use with laravel.  See my example source folder structure  here: http://screencast.com/t/XWeafjr4Q4l
 var assetsource = 'app/assets';
-var assettarget = 'public/build'
+var assettarget = 'public/build';
 
 // specify source and targets for the sections below.
 //   This is just to simplify editing.  It can all be edited here instead of in each function below
+// @todo noscript stuff
 var source = {
-    scss: [assetsource + '/scss/**/*.{css,scss}'],
-    js: [assetsource + '/js/**/*.js'],
+    scss: [
+        assetsource + '/plugins/**/*.{css,scss}',
+        assetsource + '/scss/**/*.{css,scss}'
+    ],  // just put your regular css in here as well.
+
     //plugins
-    pluginscss: [assetsource + '/plugins/**/*.{css,scss}'],
-    pluginjs: [assetsource + '/plugins/jquery/*.js', assetsource + '/plugins/**/*.js'],
-    pluginfonts: [assetsource + '/plugins/**/*.{ttf,woff,eof,svg}'],
+    // You should specifically load your js plugins or plugin folders in the order you want them to load
+    jsheader: [
+        assetsource + '/plugins/jquery/*.js',  // I put jquery in the header b/c its used by everything it seems like.
+        assetsource + '/js/header/**/*.js'
+    ],
+
+    jsfooter: [
+        //  You need to specifically add yourplugin JS, each file or the whole folder
+
+        //  all the crap for jquery file upload... has to be done in the right order
+        assetsource + '/plugins/jQuery-File-Upload/js/vendor/jquery.ui.widget.js',
+        assetsource + '/plugins/JavaScript-Templates/js/tmpl.js',
+        assetsource + '/plugins/JavaScript-Load-Image/js/load-image.min.js', // just load min b/c of https://github.com/blueimp/jQuery-File-Upload/issues/2385
+        assetsource + '/plugins/JavaScript-Canvas-to-Blob/js/canvas-to-blob.js',
+        assetsource + '/plugins/jQuery-File-Upload/js/jquery.iframe-transport.js',
+        assetsource + '/plugins/jQuery-File-Upload/js/jquery.fileupload.js',
+        assetsource + '/plugins/jQuery-File-Upload/js/jquery.fileupload-process.js',
+        assetsource + '/plugins/jQuery-File-Upload/js/jquery.fileupload-image.js',
+        assetsource + '/plugins/jQuery-File-Upload/js/jquery.fileupload-audio.js',
+        assetsource + '/plugins/jQuery-File-Upload/js/jquery.fileupload-video.js',
+        assetsource + '/plugins/jQuery-File-Upload/js/jquery.fileupload-validate.js',
+        assetsource + '/plugins/jQuery-File-Upload/js/jquery.fileupload-ui.js',
+
+        // jquery minicolors
+        assetsource + '/plugins/jquery-minicolors/jquery.minicolors.js',
+
+        // load the rest of the stuff in the footer
+        assetsource + '/js/footer/**/*.js'
+    ],
 
     //bootstrap
-    bootstrapjs: [assetsource + '/bootstrap/javascripts/bootstrap/*.js'],
+    bootstrapjs: [assetsource + '/bootstrap/javascripts/bootstrap.js'],
     bootstrapscss: [assetsource + '/bootstrap/stylesheets/bootstrap.scss'],
-    bootstrapfonts: [assetsource + '/bootstrap/fonts/bootstrap/*'],
-    // "static" stuff
-    images: [assetsource + '/images/**/*'],
-    fonts: [assetsource + '/fonts/**/*']
+    bootstrapfonts: [assetsource + '/bootstrap/fonts/**/*.{ttf,woff,eof,svg}'],
+
+    // "static" stuff and add all the images and fonts from plugins
+
+    images: [assetsource + '/plugins/**/*.{png,jpeg,gif,jpg}', assetsource + '/img/**/*'],
+    fonts: [assetsource + '/plugins/**/*.{ttf,woff,eof,svg}', assetsource + '/fonts/**/*']
 };
 var target = {
     scss: assettarget + '/css',
     js: assettarget + '/js',
-    //plugins
-    plugincss: assettarget + '/plugins/css',
-    pluginscss: assettarget + '/plugins/css',
-    pluginjs: assettarget + '/plugins/js',
-    pluginfonts: assettarget + '/plugins/fonts',
+
     //bootstrap
     bootstrapjs: assettarget + '/bootstrap/javascripts',
     bootstrapscss: assettarget + '/bootstrap/stylesheets',
-    bootstrapfonts: assettarget + '/bootstrap/fonts',
+    bootstrapfonts: assettarget + '/bootstrap/stylesheets',
+
     // "static" stuff
-    images: assettarget + '/images',
+    images: assettarget + '/img',
     fonts: assettarget + '/fonts'
 };
 
 ///////////////////////////////////
 // Stuff you may not want to edit
 ///////////////////////////////////
-
 var gulp = require('gulp');
 var gutil = require('gulp-util');
 var lr = require('tiny-lr');
@@ -74,6 +102,7 @@ var watch = require('gulp-watch');
 var plumber = require('gulp-plumber');
 var clean = require('gulp-clean');
 var flatten = require('gulp-flatten');
+var exclude = require('gulp-ignore').exclude;
 
 // Include CSS components
 //   to use less for Compilation... just find/replace "scss" to "less" and "npm install --save-dev gulp-less" (not tested.. but should work)
@@ -98,75 +127,49 @@ var config = {'env': 'prod'};
 gulp.task('scss', function () {
     if (config.env == 'dev') {
         gulp.src(source.scss)
+            .pipe(exclude('**/*-noscript*'))
             .pipe(watch())
             .pipe(plumber()) // This will keeps pipes working after error event
             .pipe(scss().on('error', gutil.log))
+            .pipe(concat("app.css"))
             .pipe(gulp.dest(target.scss))
             .pipe(livereload(server));
     } else {
         gulp.src(source.scss)
             .pipe(scss().on('error', gutil.log))
             .pipe(autoprefixer('last 10 versions'))
+            .pipe(concat("app.css"))
             .pipe(minifycss())
             .pipe(gulp.dest(target.scss));
     }
 });
 
-gulp.task('plugin_scss', function () {
-    if (config.env == 'dev') {
-        gulp.src(source.pluginscss)
-            .pipe(watch())
-            .pipe(plumber())
-            .pipe(scss().on('error', gutil.log))
-            .pipe(concat('plugins.css'))
-            .pipe(gulp.dest(target.pluginscss))
-            .pipe(livereload(server));
-    } else {
-        gulp.src(source.pluginscss)
-            .pipe(scss().on('error', gutil.log))
-            .pipe(autoprefixer('last 15 version', 'ie 8'))
-            .pipe(minifycss())
-            .pipe(concat('plugins.css'))
-            .pipe(gulp.dest(target.pluginscss));
-    }
-});
-
-//plugin fonts
-gulp.task('plugin_fonts', function () {
-        gulp.src(source.pluginfonts)
-            .pipe(flatten())// since we are moving the js and css files... we should probably move fonts too
-            .pipe(gulp.dest(target.pluginfonts))
-});
-
-//Plugin JS Compilation
-gulp.task('plugin_scripts', function () {
-    if (config.env == 'dev') {
-        gulp.src(source.pluginjs)
-            .pipe(watch())
-            .pipe(plumber())
-            .pipe(concat("plugin.js"))
-            .pipe(gulp.dest(target.pluginjs))
-            .pipe(livereload(server));
-    } else {
-        gulp.src(source.pluginjs)
-            .pipe(concat("plugin.js"))
-            .pipe(uglify({mangle: true}).on('error', gutil.log))
-            .pipe(gulp.dest(target.pluginjs));
-    }
-});
 
 // JS Compilation
 gulp.task('scripts', function () {
     if (config.env == 'dev') {
-        gulp.src(source.js)
+        // header
+        gulp.src(source.jsheader)
             .pipe(watch())
             .pipe(plumber())
-            .pipe(concat("app.js"))
+            .pipe(concat("appheader.js"))
+            .pipe(gulp.dest(target.js))
+            .pipe(livereload(server));
+
+        //footer
+        gulp.src(source.jsfooter)
+            .pipe(watch())
+            .pipe(plumber())
+            .pipe(concat("appfooter.js"))
             .pipe(gulp.dest(target.js))
             .pipe(livereload(server));
     } else {
-        gulp.src(source.js)
-            .pipe(concat("app.js"))
+        gulp.src(source.jsheader)
+            .pipe(concat("appheader.js"))
+            .pipe(uglify({mangle: true}).on('error', gutil.log))
+            .pipe(gulp.dest(target.js));
+        gulp.src(source.jsfooter)
+            .pipe(concat("appfooter.js"))
             .pipe(uglify({mangle: true}).on('error', gutil.log))
             .pipe(gulp.dest(target.js));
     }
@@ -211,11 +214,13 @@ gulp.task('bootstrap', function () {
 
 gulp.task('fonts', function(){
     gulp.src(source.fonts)
+        .pipe(flatten())
         .pipe(gulp.dest(target.fonts));
 });
 
 gulp.task('images', function(){
     gulp.src(source.images)
+        .pipe(flatten())
         .pipe(gulp.dest(target.images));
 });
 
@@ -257,9 +262,7 @@ gulp.task('dev',
 );
 
 gulp.task('prod',
-    ['scss','plugin_scss','plugin_fonts',
-        'scripts','plugin_scripts','fonts','images',
-        'bootstrap']
+    ['scss','scripts','fonts','images','bootstrap']
 );
 
 gulp.task('default',['prod']);
