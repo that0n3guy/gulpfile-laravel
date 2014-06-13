@@ -30,13 +30,20 @@ var assettarget = 'public/build';
 
 // specify source and targets for the sections below.
 //   This is just to simplify editing.  It can all be edited here instead of in each function below
-// @todo noscript stuff
+// @todo add a appnoscript.css file since I excluded *-noscript.css files.
 var source = {
     scss: [
         assetsource + '/plugins/**/*.{css,scss}',
         assetsource + '/scss/**/*.{css,scss}'
     ],  // just put your regular css in here as well.
-
+    scssexclude: [
+        '**/*-noscript*',
+        '**/ckeditor/*'
+    ],
+    less: [
+        //assetsource + '/plugins/**/*.{css,less}',
+        assetsource + '/less/**/*.{css,less}'
+    ],  // just put your regular css in here as well.
     //plugins
     // You should specifically load your js plugins or plugin folders in the order you want them to load
     jsheader: [
@@ -60,6 +67,16 @@ var source = {
         assetsource + '/plugins/jQuery-File-Upload/js/jquery.fileupload-video.js',
         assetsource + '/plugins/jQuery-File-Upload/js/jquery.fileupload-validate.js',
         assetsource + '/plugins/jQuery-File-Upload/js/jquery.fileupload-ui.js',
+        assetsource + '/plugins/jquery-countTo/jquery.countTo.js',
+        assetsource + '/plugins/jquery.scrollTo/jquery.scrollTo.js',
+        assetsource + '/plugins/form-forking/js/branching-form.js',
+        assetsource + '/plugins/selectize.js/dist/js/standalone/selectize.js',
+        assetsource + '/plugins/DataTables-1.10.0/media/js/jquery.dataTables.js',
+        assetsource + '/plugins/jquery-interdependencies/deps.js',
+        assetsource + '/plugins/bootstrap-datepicker/js/bootstrap-datepicker.js',
+        assetsource + '/plugins/bootstrapvalidator/dist/js/bootstrapValidator.js',
+        assetsource + '/plugins/bootstrap-fileinput/js/fileinput.js',
+        assetsource + '/plugins/jquery-cookie-master/jquery.cookie.js',
 
         // jquery minicolors
         assetsource + '/plugins/jquery-minicolors/jquery.minicolors.js',
@@ -89,6 +106,8 @@ var target = {
 
     // "static" stuff
     images: assettarget + '/img',
+    images2: assettarget + '/images',
+
     fonts: assettarget + '/fonts'
 };
 
@@ -107,6 +126,7 @@ var exclude = require('gulp-ignore').exclude;
 // Include CSS components
 //   to use less for Compilation... just find/replace "scss" to "less" and "npm install --save-dev gulp-less" (not tested.. but should work)
 var scss = require('gulp-sass')
+var less = require('gulp-less')
 var autoprefixer = require('gulp-autoprefixer');
 var minifycss = require('gulp-minify-css');
 
@@ -127,18 +147,32 @@ var config = {'env': 'prod'};
 gulp.task('scss', function () {
     if (config.env == 'dev') {
         gulp.src(source.scss)
-            .pipe(exclude('**/*-noscript*'))
+            .pipe(exclude(source.scssexclude))
             .pipe(watch())
             .pipe(plumber()) // This will keeps pipes working after error event
             .pipe(scss().on('error', gutil.log))
             .pipe(concat("app.css"))
             .pipe(gulp.dest(target.scss))
             .pipe(livereload(server));
+        gulp.src(source.less)
+            .pipe(watch())
+            .pipe(plumber()) // This will keeps pipes working after error event
+            .pipe(less().on('error', gutil.log))
+            .pipe(concat("app-less.css"))
+            .pipe(gulp.dest(target.scss))
+            .pipe(livereload(server));
     } else {
         gulp.src(source.scss)
+            .pipe(exclude(source.scssexclude))
             .pipe(scss().on('error', gutil.log))
             .pipe(autoprefixer('last 10 versions'))
             .pipe(concat("app.css"))
+            .pipe(minifycss())
+            .pipe(gulp.dest(target.scss));
+        gulp.src(source.less)
+            .pipe(scss().on('error', gutil.log))
+            .pipe(autoprefixer('last 10 versions'))
+            .pipe(concat("app-less.css"))
             .pipe(minifycss())
             .pipe(gulp.dest(target.scss));
     }
@@ -222,6 +256,9 @@ gulp.task('images', function(){
     gulp.src(source.images)
         .pipe(flatten())
         .pipe(gulp.dest(target.images));
+    gulp.src(source.images)
+        .pipe(flatten())
+        .pipe(gulp.dest(target.images2));
 });
 
 
